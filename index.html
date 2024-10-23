@@ -4,7 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Animon Battles [ALPHA]</title>
+  <!-- Load save library -->
   <script src="indexdb.js" defer></script>
+  <script>
+        // Test code
+        document.addEventListener("DOMContentLoaded", function() {
+            saveDataStore('PokemonStore', 'Bulbasaur', { level: 12, att: 7 });
+            console.log(getDataStore('PokemonStore', 'Bulbasaur');)
+        });
+    </script>
 </head>
 <body>
   <p>Hi!</p>
