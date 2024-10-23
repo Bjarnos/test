@@ -1,50 +1,82 @@
-// indexdb.js
 console.log("IndexedDB script loaded.");
 
-// Open or create the Pokemon database
-const request = indexedDB.open('Pokemon', 1);
+function initDB(datastore) {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(datastore, 1);
 
-// Create the object store for Pokemon
-request.onupgradeneeded = function(event) {
-    const db = event.target.result;
-    const objectStore = db.createObjectStore('PokemonStore', { keyPath: 'name' });
-    objectStore.createIndex('level', 'level', { unique: false });
-    objectStore.createIndex('att', 'att', { unique: false });
-};
+        request.onupgradeneeded = function (event) {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(datastore)) {
+                const objectStore = db.createObjectStore(datastore, { keyPath: 'name' });
+                objectStore.createIndex('level', 'level', { unique: false });
+                objectStore.createIndex('att', 'att', { unique: false });
+            }
+        };
 
-// Once the database is open, proceed with transactions
-request.onsuccess = function(event) {
-    const db = event.target.result;
+        request.onsuccess = function (event) {
+            resolve(event.target.result);
+        };
 
-    // Add Pokemon data
-    const transaction = db.transaction('PokemonStore', 'readwrite');
-    const objectStore = transaction.objectStore('PokemonStore');
+        request.onerror = function (event) {
+            reject('Database error: ' + event.target.errorCode);
+        };
+    });
+}
 
-    // Add Pikachu
-    objectStore.add({ name: 'Pikachu', level: 10, att: 5 });
-    // Add Charizard
-    objectStore.add({ name: 'Charizard', level: 8, att: 10 });
+// Function to save/update data in the specified datastore
+function saveDataStore(datastore, key, value) {
+    initDB(datastore).then(db => {
+        const transaction = db.transaction(datastore, 'readwrite');
+        const objectStore = transaction.objectStore(datastore);
 
-    // Update Charizard's attack value
-    objectStore.put({ name: 'Charizard', level: 8, att: 11 });
+        objectStore.put({ name: key, ...value });
 
-    // Read data for Pikachu
-    const getPikachuRequest = objectStore.get('Pikachu');
-    getPikachuRequest.onsuccess = function() {
-        console.log('Pikachu:', getPikachuRequest.result);
-    };
+        transaction.oncomplete = () => {
+            console.log(`Data saved for ${key}`);
+        };
 
-    // Read data for Charizard
-    const getCharizardRequest = objectStore.get('Charizard');
-    getCharizardRequest.onsuccess = function() {
-        console.log('Charizard:', getCharizardRequest.result);
-    };
+        transaction.onerror = (event) => {
+            console.error(`Error saving data for ${key}: `, event.target.error);
+        };
+    }).catch(error => console.error(error));
+}
 
-    // Delete Pikachu
-    objectStore.delete('Pikachu');
-};
+// Function to remove a key from the specified datastore
+function removeDataStore(datastore, key) {
+    initDB(datastore).then(db => {
+        const transaction = db.transaction(datastore, 'readwrite');
+        const objectStore = transaction.objectStore(datastore);
 
-// Handle errors
-request.onerror = function(event) {
-    console.error('Database error:', event.target.errorCode);
-};
+        objectStore.delete(key);
+
+        transaction.oncomplete = () => {
+            console.log(`${key} has been removed`);
+        };
+
+        transaction.onerror = (event) => {
+            console.error(`Error removing ${key}: `, event.target.error);
+        };
+    }).catch(error => console.error(error));
+}
+
+// Function to get data from the specified datastore
+function getDataStore(datastore, key) {
+    initDB(datastore).then(db => {
+        const transaction = db.transaction(datastore, 'readonly');
+        const objectStore = transaction.objectStore(datastore);
+
+        const request = objectStore.get(key);
+
+        request.onsuccess = () => {
+            if (request.result) {
+                console.log(`${key} found: `, request.result);
+            } else {
+                console.log(`${key} not found`);
+            }
+        };
+
+        request.onerror = (event) => {
+            console.error(`Error getting ${key}: `, event.target.error);
+        };
+    }).catch(error => console.error(error));
+}
