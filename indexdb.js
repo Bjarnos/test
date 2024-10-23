@@ -23,7 +23,6 @@ function initDB(datastore) {
     });
 }
 
-// Function to save/update data in the specified datastore
 function saveDataStore(datastore, key, value) {
     initDB(datastore).then(db => {
         const transaction = db.transaction(datastore, 'readwrite');
@@ -31,17 +30,12 @@ function saveDataStore(datastore, key, value) {
 
         objectStore.put({ name: key, ...value });
 
-        transaction.oncomplete = () => {
-            console.log(`Data saved for ${key}`);
-        };
-
         transaction.onerror = (event) => {
             console.error(`Error saving data for ${key}: `, event.target.error);
         };
     }).catch(error => console.error(error));
 }
 
-// Function to remove a key from the specified datastore
 function removeDataStore(datastore, key) {
     initDB(datastore).then(db => {
         const transaction = db.transaction(datastore, 'readwrite');
@@ -49,34 +43,34 @@ function removeDataStore(datastore, key) {
 
         objectStore.delete(key);
 
-        transaction.oncomplete = () => {
-            console.log(`${key} has been removed`);
-        };
-
         transaction.onerror = (event) => {
             console.error(`Error removing ${key}: `, event.target.error);
         };
     }).catch(error => console.error(error));
 }
 
-// Function to get data from the specified datastore
 function getDataStore(datastore, key) {
-    initDB(datastore).then(db => {
-        const transaction = db.transaction(datastore, 'readonly');
-        const objectStore = transaction.objectStore(datastore);
+    return new Promise((resolve, reject) => {
+        initDB(datastore).then(db => {
+            const transaction = db.transaction(datastore, 'readonly');
+            const objectStore = transaction.objectStore(datastore);
 
-        const request = objectStore.get(key);
+            const request = objectStore.get(key);
 
-        request.onsuccess = () => {
-            if (request.result) {
-                console.log(`${key} found: `, request.result);
-            } else {
-                console.log(`${key} not found`);
-            }
-        };
+            request.onsuccess = () => {
+                if (request.result) {
+                    resolve(request.result);
+                } else {
+                    console.log(`${key} not found`);
+                    resolve(null);  // Return null if the key is not found
+                }
+            };
 
-        request.onerror = (event) => {
-            console.error(`Error getting ${key}: `, event.target.error);
-        };
-    }).catch(error => console.error(error));
+            request.onerror = (event) => {
+                console.error(`Error getting ${key}: `, event.target.error);
+                reject(event.target.error);
+            };
+        }).catch(error => reject(error));
+    });
 }
+
